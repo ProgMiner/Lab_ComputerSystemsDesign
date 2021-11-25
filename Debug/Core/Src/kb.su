@@ -1,0 +1,7 @@
+kb.c:18:13:kb_event_push	16	static
+kb.c:24:6:kb_event_has	4	static
+kb.c:28:17:kb_event_pop	16	static
+kb.c:35:6:kb_init	40	static
+kb.c:41:20:kb_write_output	24	static
+kb.c:45:20:kb_read_input	24	static
+kb.c:49:6:kb_scan_step	48	static
