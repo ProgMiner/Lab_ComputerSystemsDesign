@@ -6,25 +6,24 @@
 #include "main.h"
 
 
+enum kb_event_key {
+    KB_EVENT_KEY_1 = 0,
+    KB_EVENT_KEY_2 = 1,
+    KB_EVENT_KEY_3 = 2,
+    KB_EVENT_KEY_4 = 3,
+    KB_EVENT_KEY_5 = 4,
+    KB_EVENT_KEY_6 = 5,
+    KB_EVENT_KEY_7 = 6,
+    KB_EVENT_KEY_8 = 7,
+    KB_EVENT_KEY_9 = 8,
+    KB_EVENT_KEY_10 = 9,
+    KB_EVENT_KEY_11 = 10,
+    KB_EVENT_KEY_12 = 11,
+};
 
-#define KB_EVENT_KEY_1 (0x1)
-#define KB_EVENT_KEY_2 (0x2)
-#define KB_EVENT_KEY_3 (0x4)
-#define KB_EVENT_KEY_4 (0x8)
-#define KB_EVENT_KEY_5 (0x10)
-#define KB_EVENT_KEY_6 (0x20)
-#define KB_EVENT_KEY_7 (0x40)
-#define KB_EVENT_KEY_8 (0x80)
-#define KB_EVENT_KEY_9 (0x100)
-#define KB_EVENT_KEY_10 (0x200)
-#define KB_EVENT_KEY_11 (0x400)
-#define KB_EVENT_KEY_12 (0x800)
-
-
-typedef uint16_t kb_event_key;
 
 struct kb_event {
-	kb_event_key key;
+	enum kb_event_key key;
 };
 
 
