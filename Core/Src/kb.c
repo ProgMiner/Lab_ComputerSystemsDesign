@@ -25,34 +25,40 @@ static size_t buffer_end_idx = 0;
 
 
 static void kb_event_push(struct kb_event event) {
-	buffer[buffer_end_idx] = event;
+    buffer[buffer_end_idx] = event;
 
-	INC_BUFFER_IDX(buffer_end_idx);
+    INC_BUFFER_IDX(buffer_end_idx);
 }
 
 bool kb_event_has() {
-	return buffer_start_idx != buffer_end_idx;
+    const uint32_t priMask = __get_PRIMASK();
+    __disable_irq();
+
+    const bool ret = buffer_start_idx != buffer_end_idx;
+
+    __set_PRIMASK(priMask);
+    return ret;
 }
 
 struct kb_event kb_event_pop() {
     const uint32_t priMask = __get_PRIMASK();
     __disable_irq();
 
-	const struct kb_event evt = buffer[buffer_start_idx];
-	INC_BUFFER_IDX(buffer_start_idx);
+    const struct kb_event evt = buffer[buffer_start_idx];
+    INC_BUFFER_IDX(buffer_start_idx);
 
     __set_PRIMASK(priMask);
-	return evt;
+    return evt;
 }
 
 void kb_init(I2C_HandleTypeDef * i2c) {
-	uint8_t config = 0x0;
+    uint8_t config = 0x0;
 
-	HAL_I2C_Mem_Write(i2c, KB_I2C_WRITE_ADDRESS, KB_OUTPUT_REG, 1, &config, 1, 100);
+    HAL_I2C_Mem_Write(i2c, KB_I2C_WRITE_ADDRESS, KB_OUTPUT_REG, 1, &config, 1, 100);
 }
 
 static inline void kb_write_config(I2C_HandleTypeDef * i2c, uint8_t data) {
-	HAL_I2C_Mem_Write_IT(i2c, KB_I2C_WRITE_ADDRESS, KB_CONFIG_REG, 1, &data, 1);
+    HAL_I2C_Mem_Write_IT(i2c, KB_I2C_WRITE_ADDRESS, KB_CONFIG_REG, 1, &data, 1);
 }
 
 static inline void kb_select_row(I2C_HandleTypeDef * i2c, uint8_t row) {
@@ -60,44 +66,44 @@ static inline void kb_select_row(I2C_HandleTypeDef * i2c, uint8_t row) {
 }
 
 static inline void kb_read_input(I2C_HandleTypeDef * i2c, uint8_t * data) {
-	HAL_I2C_Mem_Read_IT(i2c, KB_I2C_READ_ADDRESS, KB_INPUT_REG, 1, data, 1);
+    HAL_I2C_Mem_Read_IT(i2c, KB_I2C_READ_ADDRESS, KB_INPUT_REG, 1, data, 1);
 }
 
 void kb_scan_step(I2C_HandleTypeDef * i2c) {
-	static uint8_t reg_buffer = ~0;
+    static uint8_t reg_buffer = ~0;
 
-	static uint8_t row = 0;
-	static bool read = false;
-	static bool input_keys[12] = { 0 };
+    static uint8_t row = 0;
+    static bool read = false;
+    static bool input_keys[12] = { 0 };
     static bool output_keys[12] = { 0 };
     static uint32_t key_time[12] = { 0 };
 
-	if (HAL_I2C_GetState(i2c) != HAL_I2C_STATE_READY) {
-		// uart_send_message_format("%d keyboard is busy\n", HAL_GetTick());
-		return;
-	}
+    if (HAL_I2C_GetState(i2c) != HAL_I2C_STATE_READY) {
+        // uart_send_message_format("%d keyboard is busy\n", HAL_GetTick());
+        return;
+    }
 
-	if (!read) {
-		// handle read data
-		for (int i = 0, mask = 0x10; i < 3; ++i, mask <<= 1) {
-			if ((reg_buffer & mask) == 0) {
+    if (!read) {
+        // handle read data
+        for (int i = 0, mask = 0x10; i < 3; ++i, mask <<= 1) {
+            if ((reg_buffer & mask) == 0) {
                 input_keys[row * 3 + i] = true;
-			}
-		}
+            }
+        }
 
-		// move to next row
-		row = (row + 1) % 4;
+        // move to next row
+        row = (row + 1) % 4;
 
-		// if read all rows then handle results
-		if (row == 0) {
-			uint8_t count = 0;
+        // if read all rows then handle results
+        if (row == 0) {
+            uint8_t count = 0;
 
             // count pressed buttons
-			for (int i = 0; i < 12; ++i) {
-				if (input_keys[i]) {
-					++count;
-				}
-			}
+            for (int i = 0; i < 12; ++i) {
+                if (input_keys[i]) {
+                    ++count;
+                }
+            }
 
             // ignore if pressed more than 2 buttons
             if (count > 2) {
@@ -119,7 +125,9 @@ void kb_scan_step(I2C_HandleTypeDef * i2c) {
 
                     // send event once
                     if (output_keys[i]) {
-                        kb_event_push((struct kb_event) { .key = i });
+                        kb_event_push((struct kb_event) { .type = KB_EVENT_TYPE_PRESS, .key = i });
+                    } else {
+                        kb_event_push((struct kb_event) { .type = KB_EVENT_TYPE_RELEASE, .key = i });
                     }
                 }
             }
@@ -128,12 +136,12 @@ void kb_scan_step(I2C_HandleTypeDef * i2c) {
             memset(input_keys, 0, sizeof(input_keys));
         }
 
-		// start write
+        // start write
         kb_select_row(i2c, row);
-	} else {
-		// start read
-		kb_read_input(i2c, &reg_buffer);
-	}
+    } else {
+        // start read
+        kb_read_input(i2c, &reg_buffer);
+    }
 
-	read = !read;
+    read = !read;
 }

@@ -184,8 +184,21 @@ static bool handle_kb_menu(struct kb_event evt) {
             return false;
     }
 
-    uart_send_message_format("current new mode settings: index %d, led %s, power %d%%\r\n",
-                             new_mode_idx, led_names[new_mode.led], new_mode.power);
+    if (!idx_selected && !led_selected) {
+        uart_send_message_format("current new mode settings: index is not selected, led is not selected, power %d%%\r\n",
+                                 new_mode.power);
+    } else if (!idx_selected) {
+        // unreachable
+
+        uart_send_message_format("current new mode settings: index is not selected, led %s, power %d%%\r\n",
+                                 led_names[new_mode.led], new_mode.power);
+    } else if (!led_selected) {
+        uart_send_message_format("current new mode settings: index %d, led is not selected, power %d%%\r\n",
+                                 new_mode_idx, new_mode.power);
+    } else {
+        uart_send_message_format("current new mode settings: index %d, led %s, power %d%%\r\n",
+                                 new_mode_idx, led_names[new_mode.led], new_mode.power);
+    }
 
     may_reset = false;
     return true;
@@ -304,7 +317,15 @@ int main(void)
           struct kb_event evt = kb_event_pop();
 
           if (kb_test_mode) {
-              uart_send_message_format("key %d pressed\r\n", evt.key + 1);
+              switch (evt.type) {
+                  case KB_EVENT_TYPE_PRESS:
+                      uart_send_message_format("key %d pressed\r\n", evt.key + 1);
+                      break;
+
+                  case KB_EVENT_TYPE_RELEASE:
+                      uart_send_message_format("key %d released\r\n", evt.key + 1);
+                      break;
+              }
           } else {
               handle_kb(evt);
           }
@@ -571,9 +592,9 @@ static void MX_GPIO_Init(void)
 /* USER CODE BEGIN 4 */
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef * htim) {
-	if (htim->Instance == TIM6) {
-		kb_scan_step(&hi2c1);
-	}
+    if (htim->Instance == TIM6) {
+        kb_scan_step(&hi2c1);
+    }
 }
 
 /* USER CODE END 4 */

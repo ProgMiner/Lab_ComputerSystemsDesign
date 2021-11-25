@@ -6,6 +6,11 @@
 #include "main.h"
 
 
+enum kb_event_type {
+    KB_EVENT_TYPE_PRESS = 0,
+    KB_EVENT_TYPE_RELEASE = 1,
+};
+
 enum kb_event_key {
     KB_EVENT_KEY_1 = 0,
     KB_EVENT_KEY_2 = 1,
@@ -23,7 +28,8 @@ enum kb_event_key {
 
 
 struct kb_event {
-	enum kb_event_key key;
+    enum kb_event_type type;
+    enum kb_event_key key;
 };
 
 
