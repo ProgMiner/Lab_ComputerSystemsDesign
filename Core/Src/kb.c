@@ -35,12 +35,13 @@ bool kb_event_has() {
 }
 
 struct kb_event kb_event_pop() {
+    const uint32_t priMask = __get_PRIMASK();
     __disable_irq();
 
 	const struct kb_event evt = buffer[buffer_start_idx];
 	INC_BUFFER_IDX(buffer_start_idx);
 
-    __enable_irq();
+    __set_PRIMASK(priMask);
 	return evt;
 }
 
