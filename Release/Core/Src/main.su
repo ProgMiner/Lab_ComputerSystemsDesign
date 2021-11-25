@@ -1,0 +1,9 @@
+main.c:116:13:set_no_one_led	0	static
+main.c:92:13:set_green_led	0	static
+main.c:96:13:set_yellow_led	0	static
+main.c:100:13:set_red_led	0	static
+main.c:151:6:HAL_UART_RxCpltCallback	0	static
+main.c:157:6:HAL_UART_TxCpltCallback	0	static
+main.c:386:6:SystemClock_Config	88	static
+main.c:168:5:main	648	static
+main.c:429:6:Error_Handler	0	static
