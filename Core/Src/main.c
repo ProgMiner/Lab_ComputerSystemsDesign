@@ -24,9 +24,8 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 
-#include <math.h>
-
 #include "uart.h"
+#include "led.h"
 #include "kb.h"
 
 /* USER CODE END Includes */
@@ -38,6 +37,9 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+
+#define BTN_DEBOUNCE_TIME (100)
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -70,6 +72,169 @@ static void MX_I2C1_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+
+static struct led_mode led_modes[9] = {
+    { .led = LED_GREEN, .power = 10 },
+    { .led = LED_GREEN, .power = 40 },
+    { .led = LED_GREEN, .power = 100 },
+    { .led = LED_YELLOW, .power = 10 },
+    { .led = LED_YELLOW, .power = 40 },
+    { .led = LED_YELLOW, .power = 100 },
+    { .led = LED_RED, .power = 10 },
+    { .led = LED_RED, .power = 40 },
+    { .led = LED_RED, .power = 100 },
+};
+
+
+static bool is_button_clicked() {
+    static bool output_btn = false;
+    static uint32_t btn_time = 0;
+
+    const bool input_btn = HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_15) == GPIO_PIN_RESET;
+    const uint32_t t = HAL_GetTick();
+
+    if (input_btn == output_btn) {
+        btn_time = 0;
+    } else if (btn_time == 0) {
+        btn_time = t;
+    } else if (btn_time - t >= BTN_DEBOUNCE_TIME) {
+        output_btn = !output_btn;
+
+        if (output_btn) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+static bool handle_kb_menu(struct kb_event evt) {
+    static struct led_mode new_mode = { 0 };
+    static uint8_t new_mode_idx = 0;
+    static bool idx_selected = false;
+    static bool led_selected = false;
+    static bool may_reset = false;
+
+    switch (evt.key) {
+        case KB_EVENT_KEY_1:
+        case KB_EVENT_KEY_2:
+        case KB_EVENT_KEY_3:
+        case KB_EVENT_KEY_4:
+        case KB_EVENT_KEY_5:
+        case KB_EVENT_KEY_6:
+        case KB_EVENT_KEY_7:
+        case KB_EVENT_KEY_8:
+        case KB_EVENT_KEY_9:
+            if (!idx_selected) {
+                new_mode_idx = evt.key;
+                idx_selected = true;
+                break;
+            }
+
+            switch (evt.key) {
+                case KB_EVENT_KEY_1:
+                case KB_EVENT_KEY_2:
+                case KB_EVENT_KEY_3:
+                    led_selected = true;
+                    new_mode.led = (enum led) evt.key;
+                    break;
+
+                case KB_EVENT_KEY_4:
+                    new_mode.power = (new_mode.power + 10) % 100;
+                    break;
+
+                case KB_EVENT_KEY_5:
+                    new_mode.power = (new_mode.power - 10) % 100;
+                    break;
+
+                default:
+                    // do nothing
+                    break;
+            }
+
+            break;
+
+        case KB_EVENT_KEY_10:
+        case KB_EVENT_KEY_11:
+            // do nothing
+            break;
+
+        case KB_EVENT_KEY_12:
+            if (idx_selected && led_selected) {
+                uart_send_message_string_nl("saving new configuration");
+                led_modes[new_mode_idx] = new_mode;
+            } else if (may_reset) {
+                uart_send_message_string_nl("discarding new configuration");
+            } else {
+                may_reset = true;
+
+                if (!idx_selected) {
+                    uart_send_message_string_nl("index of new mode is not specified");
+                }
+
+                if (!led_selected) {
+                    uart_send_message_string_nl("led of new mode is not specified");
+                }
+
+                uart_send_message_string_nl("new configuration is not complete, press key again to discard");
+                return true;
+            }
+
+            uart_send_message_string_nl("leaving configuration menu");
+            return false;
+    }
+
+    uart_send_message_format("current new mode settings: index %d, led %s, power %d%%\r\n",
+                             new_mode_idx, led_names[new_mode.led], new_mode.power);
+
+    may_reset = false;
+    return true;
+}
+
+static void handle_kb(struct kb_event evt) {
+    static uint8_t current_mode = 9;
+    static bool in_menu = false;
+
+    if (in_menu) {
+        in_menu = handle_kb_menu(evt);
+        return;
+    }
+
+    switch (evt.key) {
+        case KB_EVENT_KEY_1:
+        case KB_EVENT_KEY_2:
+        case KB_EVENT_KEY_3:
+        case KB_EVENT_KEY_4:
+        case KB_EVENT_KEY_5:
+        case KB_EVENT_KEY_6:
+        case KB_EVENT_KEY_7:
+        case KB_EVENT_KEY_8:
+        case KB_EVENT_KEY_9:
+        case KB_EVENT_KEY_10:
+            if (current_mode < 9) {
+                led_mode_disable(led_modes[current_mode]);
+            }
+
+            current_mode = evt.key;
+            if (current_mode < 9) {
+                led_mode_enable(led_modes[current_mode]);
+                uart_send_message_format("activated led mode %d\r\n", current_mode + 1);
+            } else {
+                uart_send_message_string_nl("all modes deactivated");
+            }
+
+            break;
+
+        case KB_EVENT_KEY_11:
+            uart_send_message_string_nl("entering configuration menu");
+            in_menu = true;
+            break;
+
+        case KB_EVENT_KEY_12:
+            // do nothing
+            break;
+    }
+}
 
 /* USER CODE END 0 */
 
@@ -120,64 +285,30 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+  bool kb_test_mode = false;
   while (1) {
     /* USER CODE END WHILE */
 
-	  while (kb_event_has()) {
-		  struct kb_event evt = kb_event_pop();
-
-		  switch (evt.key) {
-		  case KB_EVENT_KEY_1:
-			  uart_send_message_string_nl("key 1 pressed");
-			  break;
-
-		  case KB_EVENT_KEY_2:
-			  uart_send_message_string_nl("key 2 pressed");
-			  break;
-
-		  case KB_EVENT_KEY_3:
-			  uart_send_message_string_nl("key 3 pressed");
-			  break;
-
-		  case KB_EVENT_KEY_4:
-			  uart_send_message_string_nl("key 4 pressed");
-			  break;
-
-		  case KB_EVENT_KEY_5:
-			  uart_send_message_string_nl("key 5 pressed");
-			  break;
-
-		  case KB_EVENT_KEY_6:
-			  uart_send_message_string_nl("key 6 pressed");
-			  break;
-
-		  case KB_EVENT_KEY_7:
-			  uart_send_message_string_nl("key 7 pressed");
-			  break;
-
-		  case KB_EVENT_KEY_8:
-			  uart_send_message_string_nl("key 8 pressed");
-			  break;
-
-		  case KB_EVENT_KEY_9:
-			  uart_send_message_string_nl("key 9 pressed");
-			  break;
-
-		  case KB_EVENT_KEY_10:
-			  uart_send_message_string_nl("key 10 pressed");
-			  break;
-
-		  case KB_EVENT_KEY_11:
-			  uart_send_message_string_nl("key 11 pressed");
-			  break;
-
-		  case KB_EVENT_KEY_12:
-			  uart_send_message_string_nl("key 12 pressed");
-			  break;
-		  }
-	  }
-
     /* USER CODE BEGIN 3 */
+      if (is_button_clicked()) {
+          if (kb_test_mode) {
+              uart_send_message_string_nl("leaving keyboard test mode");
+          } else {
+              uart_send_message_string_nl("entering keyboard test mode");
+          }
+
+          kb_test_mode = !kb_test_mode;
+      }
+
+      while (kb_event_has()) {
+          struct kb_event evt = kb_event_pop();
+
+          if (kb_test_mode) {
+              uart_send_message_format("key %d pressed\r\n", evt.key + 1);
+          } else {
+              handle_kb(evt);
+          }
+      }
   }
   /* USER CODE END 3 */
 }
@@ -321,14 +452,13 @@ static void MX_TIM4_Init(void)
     Error_Handler();
   }
   sConfigOC.OCMode = TIM_OCMODE_PWM1;
-  sConfigOC.Pulse = 1;
+  sConfigOC.Pulse = 0;
   sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
   sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
   if (HAL_TIM_PWM_ConfigChannel(&htim4, &sConfigOC, TIM_CHANNEL_2) != HAL_OK)
   {
     Error_Handler();
   }
-  sConfigOC.Pulse = 0;
   if (HAL_TIM_PWM_ConfigChannel(&htim4, &sConfigOC, TIM_CHANNEL_3) != HAL_OK)
   {
     Error_Handler();
