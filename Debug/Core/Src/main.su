@@ -1,0 +1,7 @@
+main.c:58:13:set_green_led	16	static
+main.c:62:13:set_yellow_led	16	static
+main.c:66:13:set_red_led	16	static
+main.c:70:12:is_btn_clicked	16	static
+main.c:88:5:main	64	static
+main.c:355:6:SystemClock_Config	88	static
+main.c:398:6:Error_Handler	4	static,ignoring_inline_asm
