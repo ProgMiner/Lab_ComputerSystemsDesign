@@ -140,11 +140,14 @@ static bool handle_kb_menu(struct kb_event evt) {
                     break;
 
                 case KB_EVENT_KEY_4:
-                    new_mode.power = (new_mode.power + 10) % 100;
+                    if (new_mode.power >= 10) {
+                        new_mode.power = new_mode.power - 10;
+                    }
+
                     break;
 
                 case KB_EVENT_KEY_5:
-                    new_mode.power = (new_mode.power - 10) % 100;
+                    new_mode.power = (new_mode.power + 10) % 110;
                     break;
 
                 default:
@@ -194,10 +197,10 @@ static bool handle_kb_menu(struct kb_event evt) {
                                  led_names[new_mode.led], new_mode.power);
     } else if (!led_selected) {
         uart_send_message_format("current new mode settings: index %d, led is not selected, power %d%%\r\n",
-                                 new_mode_idx, new_mode.power);
+                                 new_mode_idx + 1, new_mode.power);
     } else {
         uart_send_message_format("current new mode settings: index %d, led %s, power %d%%\r\n",
-                                 new_mode_idx, led_names[new_mode.led], new_mode.power);
+                                 new_mode_idx + 1, led_names[new_mode.led], new_mode.power);
     }
 
     may_reset = false;
@@ -207,6 +210,10 @@ static bool handle_kb_menu(struct kb_event evt) {
 static void handle_kb(struct kb_event evt) {
     static uint8_t current_mode = 9;
     static bool in_menu = false;
+
+    if (evt.type != KB_EVENT_TYPE_PRESS) {
+        return;
+    }
 
     if (in_menu) {
         in_menu = handle_kb_menu(evt);

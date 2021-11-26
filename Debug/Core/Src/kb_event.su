@@ -1,2 +1,0 @@
-kb_event.c:15:6:kb_event_push	16	static
-kb_event.c:21:17:kb_event_pop	16	static

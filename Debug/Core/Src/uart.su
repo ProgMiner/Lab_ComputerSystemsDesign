@@ -1,5 +1,0 @@
-uart.h:11:20:uart_send_message_string	16	static
-uart.c:13:20:uart_is_ready	8	static
-uart.c:17:6:uart_send_message	16	static
-uart.c:23:6:uart_send_message_string_nl	16	static
-uart.c:28:6:uart_send_message_format	16	static

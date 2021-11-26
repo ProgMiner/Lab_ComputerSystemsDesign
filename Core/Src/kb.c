@@ -52,13 +52,16 @@ struct kb_event kb_event_pop() {
 }
 
 void kb_init(I2C_HandleTypeDef * i2c) {
-    uint8_t config = 0x0;
+    static uint8_t output = 0x0;
 
-    HAL_I2C_Mem_Write(i2c, KB_I2C_WRITE_ADDRESS, KB_OUTPUT_REG, 1, &config, 1, 100);
+    HAL_I2C_Mem_Write(i2c, KB_I2C_WRITE_ADDRESS, KB_OUTPUT_REG, 1, &output, 1, 100);
 }
 
 static inline void kb_write_config(I2C_HandleTypeDef * i2c, uint8_t data) {
-    HAL_I2C_Mem_Write_IT(i2c, KB_I2C_WRITE_ADDRESS, KB_CONFIG_REG, 1, &data, 1);
+    static uint8_t buf;
+
+    buf = data;
+    HAL_I2C_Mem_Write_IT(i2c, KB_I2C_WRITE_ADDRESS, KB_CONFIG_REG, 1, &buf, 1);
 }
 
 static inline void kb_select_row(I2C_HandleTypeDef * i2c, uint8_t row) {
@@ -85,7 +88,7 @@ void kb_scan_step(I2C_HandleTypeDef * i2c) {
 
     if (!read) {
         // handle read data
-        for (int i = 0, mask = 0x10; i < 3; ++i, mask <<= 1) {
+        for (uint8_t i = 0, mask = 0x10; i < 3; ++i, mask <<= 1) {
             if ((reg_buffer & mask) == 0) {
                 input_keys[row * 3 + i] = true;
             }
