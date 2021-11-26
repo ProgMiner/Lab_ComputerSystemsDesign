@@ -3,3 +3,5 @@
 /.idea
 /CMakeLists.txt
 /CMakeLists_template.txt
+
+/Debug
