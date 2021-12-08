@@ -28,6 +28,7 @@
 
 #include "kb.h"
 #include "lcd.h"
+#include "sprites.h"
 
 /* USER CODE END Includes */
 
@@ -101,8 +102,8 @@ int main(void)
   MX_TIM6_Init();
   /* USER CODE BEGIN 2 */
 
-  	kb_init(&hi2c1);
-  	lcd_init(&hi2c1);
+    kb_init(&hi2c1);
+    lcd_init(&hi2c1);
     HAL_TIM_Base_Start_IT(&htim6);
 
   /* USER CODE END 2 */
@@ -111,30 +112,36 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-    bool keys[12] = { 0 };
-	while (1) {
+    uint32_t keys[12] = { 0 };
+    while (1) {
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-		static uint8_t width = 10;
-		for (int i = 0; i < 12; ++i) {
-			lcd_fill_rect(width * i, 0, width * (i + 1) - 1, 63, keys[i]);
-		}
+        lcd_reset_screen();
 
-		while (kb_event_has()) {
-			struct kb_event evt = kb_event_pop();
+        static uint8_t width = 10;
+        for (int i = 0; i < 12; ++i) {
+            if (keys[i]) {
+                lcd_draw_sprite(width * i, 26, &spaceship_sprite, true, true);
+            }
+        }
 
-			switch (evt.type) {
-				case KB_EVENT_TYPE_PRESS:
-					keys[evt.key] = true;
-					break;
+        lcd_done();
 
-				case KB_EVENT_TYPE_RELEASE:
-					keys[evt.key] = false;
-					break;
-			}
-		}
-	}
+        while (kb_event_has()) {
+            struct kb_event evt = kb_event_pop();
+
+            switch (evt.type) {
+                case KB_EVENT_TYPE_PRESS:
+                    keys[evt.key] = true;
+                    break;
+
+                case KB_EVENT_TYPE_RELEASE:
+                    keys[evt.key] = false;
+                    break;
+            }
+        }
+    }
   /* USER CODE END 3 */
 }
 
@@ -288,19 +295,19 @@ static void MX_GPIO_Init(void)
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef * htim) {
     if (htim->Instance == TIM6) {
-    	static bool lcd = false;
+        static bool lcd = false;
 
         if (HAL_I2C_GetState(&hi2c1) != HAL_I2C_STATE_READY) {
             return;
         }
 
-    	if (lcd) {
-    		lcd_step(&hi2c1);
-    	} else {
+        if (lcd) {
+            lcd_step(&hi2c1);
+        } else {
             kb_scan_step(&hi2c1);
-    	}
+        }
 
-    	lcd = !lcd;
+        lcd = !lcd;
     }
 }
 

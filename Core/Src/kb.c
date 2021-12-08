@@ -2,19 +2,20 @@
 
 #include <stdbool.h>
 #include <stddef.h>
+#include <string.h>
 
 
-#define BUFFER_CAPACITY (32)
+#define BUFFER_CAPACITY 32
 #define INC_BUFFER_IDX(__idx) do { (__idx) = ((__idx) + 1) % (BUFFER_CAPACITY); } while (0)
 
-#define KB_I2C_ADDRESS (0xE2)
+#define KB_I2C_ADDRESS 0xE2
 #define KB_I2C_READ_ADDRESS ((KB_I2C_ADDRESS) | 1)
 #define KB_I2C_WRITE_ADDRESS ((KB_I2C_ADDRESS) & ~1)
-#define KB_INPUT_REG (0x0)
-#define KB_OUTPUT_REG (0x1)
-#define KB_CONFIG_REG (0x3)
+#define KB_INPUT_REG 0x0
+#define KB_OUTPUT_REG 0x1
+#define KB_CONFIG_REG 0x3
 
-#define KB_KEY_DEBOUNCE_TIME (50)
+#define KB_KEY_DEBOUNCE_TIME 10
 
 
 static struct kb_event buffer[BUFFER_CAPACITY] = { 0 };
@@ -78,10 +79,6 @@ void kb_scan_step(I2C_HandleTypeDef * i2c) {
     static bool input_keys[12] = { 0 };
     static bool output_keys[12] = { 0 };
     static uint32_t key_time[12] = { 0 };
-
-    if (HAL_I2C_GetState(i2c) != HAL_I2C_STATE_READY) {
-        return;
-    }
 
     if (!read) {
         // handle read data
