@@ -536,6 +536,7 @@ def convert_font(name, font):
     print('};')
 
 
-convert_font('font_7x10', Font_7x10)
-convert_font('font_11x18', Font_11x18)
-convert_font('font_16x26', Font_16x26)
+if __name__ == '__main__':
+    convert_font('font_7x10', Font_7x10)
+    convert_font('font_11x18', Font_11x18)
+    convert_font('font_16x26', Font_16x26)

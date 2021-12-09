@@ -15,8 +15,6 @@
 
 #define LCD_MAX_BYTES_PER_STEP 192
 #define LCD_BUF_SIZE 1024
-#define LCD_WIDTH 128
-#define LCD_HEIGHT 64
 
 
 static uint8_t buf_back[LCD_BUF_SIZE];

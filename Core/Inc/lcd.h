@@ -5,6 +5,10 @@
 #include "main.h"
 
 
+#define LCD_WIDTH 128
+#define LCD_HEIGHT 64
+
+
 // content is sequence of bits, where each bit is one pixel
 // and new line started from end of previous
 struct lcd_sprite {

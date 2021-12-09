@@ -28,7 +28,7 @@
 
 #include "kb.h"
 #include "lcd.h"
-#include "sprites.h"
+#include "game.h"
 
 /* USER CODE END Includes */
 
@@ -112,35 +112,11 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-    uint32_t keys[12] = { 0 };
     while (1) {
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-        lcd_reset_screen();
-
-        static uint8_t width = 10;
-        for (int i = 0; i < 12; ++i) {
-            if (keys[i]) {
-                lcd_draw_sprite(width * i, 26, &spaceship_sprite, true, true);
-            }
-        }
-
-        lcd_done();
-
-        while (kb_event_has()) {
-            struct kb_event evt = kb_event_pop();
-
-            switch (evt.type) {
-                case KB_EVENT_TYPE_PRESS:
-                    keys[evt.key] = true;
-                    break;
-
-                case KB_EVENT_TYPE_RELEASE:
-                    keys[evt.key] = false;
-                    break;
-            }
-        }
+        game_step();
     }
   /* USER CODE END 3 */
 }
