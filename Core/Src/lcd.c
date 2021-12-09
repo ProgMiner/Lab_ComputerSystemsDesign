@@ -15,6 +15,8 @@
 
 #define LCD_MAX_BYTES_PER_STEP 192
 #define LCD_BUF_SIZE 1024
+#define LCD_WIDTH 128
+#define LCD_HEIGHT 64
 
 
 static uint8_t buf_back[LCD_BUF_SIZE];
@@ -23,6 +25,10 @@ static uint8_t buf_front[LCD_BUF_SIZE];
 
 static inline size_t min(size_t a, size_t b) {
     return a < b ? a : b;
+}
+
+static inline size_t ceil(size_t n, size_t d) {
+    return n / d + (n % d != 0);
 }
 
 static void lcd_reset(I2C_HandleTypeDef * i2c) {
@@ -94,11 +100,11 @@ void lcd_reset_screen() {
 }
 
 void lcd_set_pixel(uint8_t x, uint8_t y, bool color) {
-    if (x > 127 || y > 63) {
+    if (x >= LCD_WIDTH || y >= LCD_HEIGHT) {
         return;
     }
 
-    const uint16_t idx = y / 8 * 128 + x;
+    const uint16_t idx = y / 8 * LCD_WIDTH + x;
     const uint8_t mask = 1 << (y % 8);
 
     if (color) {
@@ -145,22 +151,31 @@ void lcd_draw_sprite(uint8_t start_x, uint8_t start_y, const struct lcd_sprite *
 }
 
 void lcd_draw_char(uint8_t x, uint8_t y, const struct lcd_font * font, char c, bool color, bool transparent) {
-    lcd_draw_sprite(x, y, &font->sprites[(uint8_t) c], color, transparent);
+    if (x >= LCD_WIDTH || y >= LCD_HEIGHT) {
+        return;
+    }
+
+    const size_t sprite_offset = (c - 32) * ceil(font->width * font->height, 8);
+    const struct lcd_sprite sprite = {
+        .width = font->width,
+        .height = font->height,
+        .content = font->content + sprite_offset,
+    };
+
+    lcd_draw_sprite(x, y, &sprite, color, transparent);
 }
 
 void lcd_draw_string(uint8_t x, uint8_t y, const struct lcd_font * font, const char * s, bool color, bool transparent) {
     uint8_t current_x = x;
 
-    while (s) {
-        if (current_x + font->sprites[(uint8_t) *s].width >= 128) {
+    for (; s; ++s) {
+        if (current_x + font->width >= LCD_WIDTH) {
             current_x = x;
-            y += font->sprites[(uint8_t) *s].height;
+            y += font->height;
         }
 
         lcd_draw_char(current_x, y, font, *s, color, transparent);
-
-        current_x += font->sprites[(uint8_t) *s].width;
-        ++s;
+        current_x += font->width;
     }
 }
 

@@ -7,5 +7,3 @@ const struct lcd_sprite spaceship_sprite = {
 		.height = 20,
 		.content = spaceship_sprite_content,
 };
-
-const struct lcd_font cool_font;

@@ -37,11 +37,11 @@ cb_offset = 0
 
 for y in range(img.height):
     for x in range(img.width):
-        current_byte = current_byte << 1
-        cb_offset = cb_offset + 1
+        current_byte <<= 1
+        cb_offset += 1
 
         if img.getpixel((x, y)) == 0:
-            current_byte = current_byte | 1
+            current_byte |= 1
 
         if cb_offset == 8:
             cb_offset = 0
@@ -49,7 +49,7 @@ for y in range(img.height):
             current_byte = 0
 
 if cb_offset > 0:
-    current_byte = current_byte << (8 - cb_offset)
+    current_byte <<= 8 - cb_offset
     result.append(current_byte)
 
 name = os.path.splitext(os.path.basename(sys.argv[1]))[0] + '_sprite'
