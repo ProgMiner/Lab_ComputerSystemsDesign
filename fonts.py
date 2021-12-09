@@ -524,8 +524,8 @@ def convert_font(name, font):
         result.append(c_result)
 
     print('static const uint8_t ' + name + '_content[] = { ')
-    for c_result in result:
-        print('    ' + ', '.join(['0x{:02X}'.format(a) for a in c_result]) + ', ')
+    for i, c_result in enumerate(result):
+        print('    ' + ', '.join(['0x{:02X}'.format(a) for a in c_result]) + ', // ' + chr(i + 32))
 
     print('};')
 
