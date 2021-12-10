@@ -173,7 +173,7 @@ static void game_state_game(enum game_state prev_state, uint32_t dt) {
     for (uint8_t i = 0, idx = first_wall_idx; i < GAME_WALLS_ON_SCREEN; ++i, idx = (first_wall_idx + 1) % GAME_WALLS_BUFFER_SIZE) {
         lcd_fill_rect(wall_x, 0, wall_x + GAME_WALL_WIDTH - 1, LCD_HEIGHT - 1, true);
         lcd_fill_rect(wall_x, walls_hole_ys[idx], wall_x + GAME_WALL_WIDTH - 1,
-                      walls_hole_ys[idx] + GAME_WALL_HOLE_HEIGHT - 1, true);
+                      walls_hole_ys[idx] + GAME_WALL_HOLE_HEIGHT - 1, false);
 
         wall_x += GAME_WALLS_WIDTH_BETWEEN;
 
