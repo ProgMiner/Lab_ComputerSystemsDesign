@@ -14,6 +14,7 @@
 #define GAME_DOWN_KEY KB_EVENT_KEY_8
 
 #define GAME_MAX_SCORE 255
+#define GAME_MIN_SCORE 5
 
 #define GAME_SPACESHIP_WIDTH 22
 #define GAME_SPACESHIP_HEIGHT 20
@@ -25,8 +26,8 @@
 
 #define GAME_WALLS_ON_SCREEN 5
 #define GAME_WALLS_BUFFER_SIZE (GAME_WALLS_ON_SCREEN + 1)
-#define GAME_WALLS_WIDTH_BETWEEN (28 + GAME_WALL_WIDTH)
-#define GAME_WALLS_TIME_TO_MOVE 100
+#define GAME_WALLS_WIDTH_BETWEEN (60 + GAME_WALL_WIDTH)
+#define GAME_WALLS_TIME_TO_MOVE 25
 
 
 enum game_state {
@@ -56,6 +57,7 @@ static uint32_t walls_time_to_move;
 static uint8_t first_wall_idx;
 static int8_t first_wall_x;
 static uint8_t score;
+static bool score_was_incremented;
 static bool success;
 
 
@@ -96,23 +98,32 @@ static void game_start() {
     first_wall_idx = 0;
     first_wall_x = 127;
     score = 0;
+    score_was_incremented = false;
 }
 
 static void game_state_idle(enum game_state prev_state, uint32_t dt) {
     (void) dt;
+
+    static bool key_was_pressed;
 
     if (prev_state != GAME_STATE_IDLE) {
         lcd_reset_screen();
         lcd_draw_string(24, 9, &font_16x26, "Lab 4", true, true);
         lcd_draw_string(9, 35, &font_11x18, "Press Play", true, true);
         lcd_done();
+
+        key_was_pressed = false;
         return;
     }
 
     while (kb_event_has()) {
         struct kb_event evt = kb_event_pop();
 
-        if (evt.type == KB_EVENT_TYPE_RELEASE && evt.key == GAME_PLAY_KEY) {
+        if (evt.type == KB_EVENT_TYPE_PRESS && evt.key == GAME_PLAY_KEY) {
+            key_was_pressed = true;
+        }
+
+        if (key_was_pressed && evt.type == KB_EVENT_TYPE_RELEASE && evt.key == GAME_PLAY_KEY) {
             game_start();
         }
     }
@@ -158,7 +169,7 @@ static void game_print_game_score() {
     snprintf(score_str, 4, "%u", score);
     score_str[3] = '\0';
 
-    const uint8_t score_y = spaceship_y < 12 ? 0 : (LCD_HEIGHT - 10);
+    const uint8_t score_y = spaceship_y >= 12 ? 0 : (LCD_HEIGHT - 10);
     lcd_draw_string(0, score_y, &font_7x10, score_str, true, false);
 }
 
@@ -170,7 +181,7 @@ static void game_state_game(enum game_state prev_state, uint32_t dt) {
     lcd_reset_screen();
 
     uint8_t wall_x = first_wall_x;
-    for (uint8_t i = 0, idx = first_wall_idx; i < GAME_WALLS_ON_SCREEN; ++i, idx = (first_wall_idx + 1) % GAME_WALLS_BUFFER_SIZE) {
+    for (uint8_t i = 0, idx = first_wall_idx; i < GAME_WALLS_ON_SCREEN; ++i, idx = (idx + 1) % GAME_WALLS_BUFFER_SIZE) {
         lcd_fill_rect(wall_x, 0, wall_x + GAME_WALL_WIDTH - 1, LCD_HEIGHT - 1, true);
         lcd_fill_rect(wall_x, walls_hole_ys[idx], wall_x + GAME_WALL_WIDTH - 1,
                       walls_hole_ys[idx] + GAME_WALL_HOLE_HEIGHT - 1, false);
@@ -197,10 +208,13 @@ static void game_state_game(enum game_state prev_state, uint32_t dt) {
         // if first wall hide from screen
         if (first_wall_x == -GAME_WALL_WIDTH) {
             first_wall_x += GAME_WALLS_WIDTH_BETWEEN;
-            ++first_wall_idx;
+
+            score_was_incremented = false;
 
             // generate new wall outside of screen
             walls_hole_ys[(first_wall_idx + GAME_WALLS_ON_SCREEN) % GAME_WALLS_BUFFER_SIZE] = generate_wall_hole();
+
+            first_wall_idx = (first_wall_idx + 1) % GAME_WALLS_BUFFER_SIZE;
         }
     } else {
         walls_time_to_move -= dt;
@@ -214,7 +228,8 @@ static void game_state_game(enum game_state prev_state, uint32_t dt) {
     }
 
     // if spaceship passed wall
-    if (first_wall_x + GAME_WALL_WIDTH < GAME_SPACESHIP_X) {
+    if (!score_was_incremented && first_wall_x + GAME_WALL_WIDTH < GAME_SPACESHIP_X) {
+        score_was_incremented = true;
         ++score;
 
         // if score reached maximum
@@ -251,7 +266,7 @@ static void game_state_game(enum game_state prev_state, uint32_t dt) {
 
             case GAME_PLAY_KEY:
                 state = GAME_STATE_END;
-                success = true;
+                success = score >= GAME_MIN_SCORE;
                 break;
 
             default:
@@ -273,6 +288,8 @@ static void game_print_end_score() {
 static void game_state_end(enum game_state prev_state, uint32_t dt) {
     (void) dt;
 
+    static bool key_was_pressed;
+
     if (prev_state != GAME_STATE_END) {
         lcd_reset_screen();
 
@@ -284,13 +301,19 @@ static void game_state_end(enum game_state prev_state, uint32_t dt) {
 
         game_print_end_score();
         lcd_done();
+
+        key_was_pressed = false;
         return;
     }
 
     while (kb_event_has()) {
         struct kb_event evt = kb_event_pop();
 
-        if (evt.type == KB_EVENT_TYPE_RELEASE && evt.key == GAME_PLAY_KEY) {
+        if (evt.type == KB_EVENT_TYPE_PRESS && evt.key == GAME_PLAY_KEY) {
+            key_was_pressed = true;
+        }
+
+        if (key_was_pressed && evt.type == KB_EVENT_TYPE_RELEASE && evt.key == GAME_PLAY_KEY) {
             state = GAME_STATE_IDLE;
         }
     }

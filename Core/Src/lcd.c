@@ -166,7 +166,7 @@ void lcd_draw_char(uint8_t x, uint8_t y, const struct lcd_font * font, char c, b
 void lcd_draw_string(uint8_t x, uint8_t y, const struct lcd_font * font, const char * s, bool color, bool transparent) {
     uint8_t current_x = x;
 
-    for (; s; ++s) {
+    for (; *s; ++s) {
         if (current_x + font->width >= LCD_WIDTH) {
             current_x = x;
             y += font->height;
