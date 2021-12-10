@@ -152,6 +152,16 @@ static bool is_spaceship_collided_with_wall() {
     return false;
 }
 
+static void game_print_game_score() {
+    char score_str[4];
+
+    snprintf(score_str, 4, "%u", score);
+    score_str[3] = '\0';
+
+    const uint8_t score_y = spaceship_y < 12 ? 0 : (LCD_HEIGHT - 10);
+    lcd_draw_string(0, score_y, &font_7x10, score_str, true, false);
+}
+
 static void game_state_game(enum game_state prev_state, uint32_t dt) {
     (void) prev_state;
 
@@ -172,6 +182,7 @@ static void game_state_game(enum game_state prev_state, uint32_t dt) {
         }
     }
 
+    game_print_game_score();
     lcd_draw_sprite(GAME_SPACESHIP_X, spaceship_y, &spaceship_sprite, true, true);
     lcd_done();
 
@@ -250,7 +261,7 @@ static void game_state_game(enum game_state prev_state, uint32_t dt) {
     }
 }
 
-static void game_print_score() {
+static void game_print_end_score() {
     char score_str[13];
 
     const int len = snprintf(score_str, 13, "Score: %u", score);
@@ -271,7 +282,7 @@ static void game_state_end(enum game_state prev_state, uint32_t dt) {
             lcd_draw_string(32, 9, &font_16x26, "Fail", true, true);
         }
 
-        game_print_score();
+        game_print_end_score();
         lcd_done();
         return;
     }
